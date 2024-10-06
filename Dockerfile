@@ -3,6 +3,7 @@ FROM python:latest
 RUN pip install flask requests
 RUN pip install python-telegram-bot
 RUN pip install redis
+RUN pip install python-dotenv
 
 COPY app.py /app/app.py
 
