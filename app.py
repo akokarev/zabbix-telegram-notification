@@ -7,7 +7,7 @@ import redis
 
 # Настройка подключения к Redis
 try:
-    redis_client = redis.StrictRedis(host='192.168.252.253', port=5279, db=0, decode_responses=True)
+    redis_client = redis.StrictRedis(host='redis', port=6479, db=0, decode_responses=True)
     redis_client.ping()  # Проверка подключения к Redis
     logging.info("Успешное подключение к базе Redis")
 except redis.ConnectionError:
