@@ -9,6 +9,8 @@ services:
     volumes:
       - ./:/app
     restart: unless-stopped
+    depends_on:
+      - redis
     networks:
       default:
         ipv4_address: 172.18.2.162

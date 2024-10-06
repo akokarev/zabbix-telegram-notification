@@ -112,6 +112,40 @@ def notify():
 
     return jsonify({"status": "success"})
 
+def parse_message_body(body, recovery=False):
+    lines = body.split('\r\n')
+    if not recovery:
+        trigger_name = lines[0].split(': ')[1]
+        host_name = lines[1].split(': ')[1]
+        host_ip = lines[2].split(': ')[1]
+        severity = lines[3].split(': ')[1]
+        event_time = lines[4].split(': ')[1]
+        last_value = lines[5].split(': ')[1]
+        event_id = lines[6].split(': ')[1]
+        return trigger_name, host_name, host_ip, severity, event_time, last_value, event_id
+    else:
+        trigger_name = lines[0].split(': ')[1]
+        host_name = lines[1].split(': ')[1]
+        host_ip = lines[2].split(': ')[1]
+        recovery_time = lines[3].split(': ')[1]
+        event_age = lines[4].split(': ')[1]
+        event_id = lines[5].split(': ')[1]
+        return trigger_name, host_name, host_ip, recovery_time, event_age, event_id
+
+def parse_update_message(body):
+    """Парсит тело сообщения для обновлений"""
+    lines = body.split('\r\n')
+    user = lines[0].split(': ')[1]
+    action = lines[1].split(': ')[1]
+    event_message = lines[2].split(': ')[1]
+    host_ip = lines[3].split(': ')[1]
+    severity = lines[4].split(': ')[1]
+    event_time = lines[5].split(': ')[1]
+    last_value = lines[6].split(': ')[1]
+    event_age = lines[7].split(': ')[1]
+    event_id = lines[8].split(': ')[1]
+    return user, action, event_message, host_ip, severity, event_time, last_value, event_age, event_id
+
 if __name__ == '__main__':
     logging.info(f"Using delay: {DELAY} seconds")
     app.run(host='0.0.0.0', port=5000)
