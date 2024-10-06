@@ -36,22 +36,19 @@ def send_telegram_message(text):
     try:
         response = requests.post(url, data=data)
         response_json = response.json()
-
-        if response.status_code == 200 and response_json.get("ok"):
-            # Успешная отправка
+        if response.status_code == 200 and response_json.get("ok"): # Успешная отправка
             logging.info(f"Сообщение отправлено в Telegram")
             return response_json
-        else:
-            # Ошибка при отправке
+        else: # Ошибка при отправке
             logging.error(f"Ошибка отправки в Telegram: {response_json.get('description')}")
             return None
-
     except Exception as e:
         # Логирование исключений (ошибок сети, времени ожидания и прочее)
         logging.error(f"Исключение при отправке сообщения в Telegram: {e}")
         return None
 
 def delete_message_after_delay(message_id, event_id, delay=DELAY):
+    redis_client.set(f"timer_{event_id}", delay) # Сохраняем информацию о запланированном удалении
     Timer(delay, lambda: delete_message(message_id)).start()
     Timer(delay + 10, lambda: delete_event_from_messages(event_id)).start()
 
@@ -61,13 +58,32 @@ def delete_message(message_id):
         "chat_id": CHAT_ID,
         "message_id": message_id
     }
-    if requests.post(url, data=data):
-        logging.info(f"Удалено сообщение {event_id} из telegram после {delay} секунд")
+    response = requests.post(url, data=data)    
+    if response.status_code == 200:
+        logging.info(f"Сообщение {message_id} успешно удалено")
+    else:
+        logging.error(f"Ошибка удаления сообщения {message_id}: {response.text}")
 
 def delete_event_from_messages(event_id, delay=DELAY):
     if redis_client.exists(f"message_{event_id}"):
         redis_client.delete(f"message_{event_id}")
         logging.info(f"Удалено событие {event_id} из redis после {delay + 10} секунд")
+    if redis_client.exists(f"timer_{event_id}"):
+        redis_client.delete(f"timer_{event_id}")
+        logging.info(f"Удален таймер {event_id} из redis после {delay + 10} секунд")
+
+def check_pending_timers():
+    # Получаем все ключи с таймерами
+    keys = redis_client.keys('timer_*')
+    for key in keys:
+        event_id = key.split('_')[1]
+        remaining_time = redis_client.get(key)
+        
+        # Проверяем, есть ли в Redis сообщение для удаления
+        message_id = redis_client.get(f"message_{event_id}")
+        if message_id:
+            logging.info(f"Восстановление таймера для удаления сообщения {message_id} для события {event_id}, осталось {remaining_time} секунд")
+            delete_message_after_delay(message_id, event_id, int(remaining_time))
 
 @app.route('/notify', methods=['POST'])
 def notify():
@@ -188,5 +204,6 @@ def parse_update_message(body):
     return user, action, event_message, host_ip, severity, event_time, last_value, event_age, event_id
 
 if __name__ == '__main__':
-    logging.info(f"Используемый delay удаления сообщения: {DELAY} секунд")
+    check_pending_timers()
     app.run(host='0.0.0.0', port=5000)
+    logging.info(f"Используемый delay удаления сообщения: {DELAY} секунд")
