@@ -33,9 +33,23 @@ def send_telegram_message(text):
         "text": text,
         "parse_mode": "HTML"
     }
-    response = requests.post(url, data=data)
-    logging.info(f"Сообщение отправлено в Telegram: {text}") # Логирование успешной отправки сообщения
-    return response.json()
+    try:
+        response = requests.post(url, data=data)
+        response_json = response.json()
+
+        if response.status_code == 200 and response_json.get("ok"):
+            # Успешная отправка
+            logging.info(f"Сообщение отправлено в Telegram")
+            return response_json
+        else:
+            # Ошибка при отправке
+            logging.error(f"Ошибка отправки в Telegram: {response_json.get('description')}")
+            return None
+
+    except Exception as e:
+        # Логирование исключений (ошибок сети, времени ожидания и прочее)
+        logging.error(f"Исключение при отправке сообщения в Telegram: {e}")
+        return None
 
 def delete_message_after_delay(message_id, event_id, delay=DELAY):
     Timer(delay, lambda: delete_message(message_id)).start()
@@ -100,7 +114,7 @@ def notify():
             new_message_id = response.get("result", {}).get("message_id")
             if new_message_id:
                 redis_client.set(f"message_{event_id}", new_message_id)
-                logging.info(f"Сообщение {message_id} сохранено в Redis для события {event_id}") # Логирование успешной записи в Redis
+                logging.info(f"Сообщение {message_id} обновлено в Redis для события {event_id}") # Логирование успешной записи в Redis
         else:
             logging.warning(f"No message_id found for event_id: {event_id}")
 
@@ -120,7 +134,7 @@ def notify():
             new_message_id = response.get("result", {}).get("message_id")
             if new_message_id:
                 redis_client.set(f"message_{event_id}", new_message_id)
-                logging.info(f"Сообщение {message_id} сохранено в Redis для события {event_id}") # Логирование успешной записи в Redis
+                logging.info(f"Сообщение {message_id} обновлено в Redis для события {event_id}") # Логирование успешной записи в Redis
                 delete_message_after_delay(new_message_id, event_id)
 
     return jsonify({"status": "success"})

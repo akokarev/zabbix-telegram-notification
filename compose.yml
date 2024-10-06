@@ -16,8 +16,6 @@ services:
         ipv4_address: 172.18.2.162
   redis:
     image: redis:alpine
-    ports:
-      - 5279:6379
     volumes:
       - ./redis/data:/data
       - ./redis:/usr/local/etc/redis
