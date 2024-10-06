@@ -4,13 +4,17 @@ from flask import Flask, request, jsonify
 import requests
 from threading import Timer
 import redis
+from dotenv import load_dotenv
+
+load_dotenv() # Загрузка переменных окружения из файла .env
+
 
 # Настройка подключения к Redis
 try:
     redis_client = redis.StrictRedis(host='redis', port=6379, db=0, decode_responses=True)
-    redis_client.ping()  # Проверка подключения к Redis
-    logging.info("Успешное подключение к базе Redis")
-except redis.ConnectionError:
+    if redis_client.ping():
+        logging.info("Успешное подключение к базе Redis")
+except redis.ConnectionError as e:
     logging.error("Не удалось подключиться к базе Redis")
 
 app = Flask(__name__)
