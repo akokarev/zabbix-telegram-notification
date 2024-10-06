@@ -61,12 +61,13 @@ def delete_message(message_id):
         "chat_id": CHAT_ID,
         "message_id": message_id
     }
-    requests.post(url, data=data)
+    if requests.post(url, data=data):
+        logging.info(f"Удалено сообщение {event_id} из telegram после {delay} секунд")
 
 def delete_event_from_messages(event_id, delay=DELAY):
     if redis_client.exists(f"message_{event_id}"):
         redis_client.delete(f"message_{event_id}")
-        logging.info(f"Удалено событие {event_id} из messages после {delay + 10} секунд")
+        logging.info(f"Удалено событие {event_id} из redis после {delay + 10} секунд")
 
 @app.route('/notify', methods=['POST'])
 def notify():
