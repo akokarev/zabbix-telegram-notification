@@ -144,7 +144,7 @@ def notify():
             if message_id:
                 redis_client.set(f"message_{event_id}", message_id)
                 logging.info(f"Сообщение отправлено и сохранено в Redis: event_id={event_id}, message_id={message_id}")
-                delete_message_after_delay(new_message_id, event_id)
+                delete_message_after_delay(message_id, event_id)
             else:
                 logging.error(f"Не удалось получить message_id от Telegram для event_id={event_id}")
         else:
