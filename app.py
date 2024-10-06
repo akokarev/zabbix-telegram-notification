@@ -6,7 +6,12 @@ from threading import Timer
 import redis
 
 # Настройка подключения к Redis
-redis_client = redis.StrictRedis(host='192.168.252.253', port=5279, db=0, decode_responses=True) 
+try:
+    redis_client = redis.StrictRedis(host='192.168.252.253', port=6479, db=0, decode_responses=True)
+    redis_client.ping()  # Проверка подключения к Redis
+    logging.info("Успешное подключение к базе Redis")
+except redis.ConnectionError:
+    logging.error("Не удалось подключиться к базе Redis")
 
 app = Flask(__name__)
 
