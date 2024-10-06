@@ -121,7 +121,7 @@ def notify():
 
     return jsonify({"status": "success"})
 
-def parse_message_body(message_body, recovery=False):
+def parse_message_body(body, recovery=False):
     lines = body.split('\r\n')
     if not recovery:
         trigger_name = lines[0].split(': ')[1]
@@ -141,7 +141,7 @@ def parse_message_body(message_body, recovery=False):
         event_id = lines[5].split(': ')[1]
         return trigger_name, host_name, host_ip, recovery_time, event_age, event_id
 
-def parse_update_message(message_body):
+def parse_update_message(body):
     """Парсит тело сообщения для обновлений"""
     lines = body.split('\r\n')
     user = lines[0].split(': ')[1]
