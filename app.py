@@ -205,5 +205,5 @@ def parse_update_message(body):
 
 if __name__ == '__main__':
     check_pending_timers()
-    app.run(host='0.0.0.0', port=5000)
     logging.info(f"Используемый delay удаления сообщения: {DELAY} секунд")
+    app.run(host='0.0.0.0', port=5000)
