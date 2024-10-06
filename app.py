@@ -34,6 +34,7 @@ def send_telegram_message(text):
         "parse_mode": "HTML"
     }
     response = requests.post(url, data=data)
+    logging.info(f"Сообщение отправлено в Telegram: {text}") # Логирование успешной отправки сообщения
     return response.json()
 
 def delete_message_after_delay(message_id, event_id, delay=DELAY):
@@ -79,6 +80,7 @@ def notify():
         message_id = response.get("result", {}).get("message_id")
         if message_id:
             redis_client.set(f"message_{event_id}", message_id) 
+            logging.info(f"Сообщение {message_id} сохранено в Redis для события {event_id}") # Логирование успешной записи в Redis
 
     elif 'update' in subject: 
         user, action, event_message, host_ip, severity, event_time, last_value, event_age, event_id = parse_update_message(message_body)
@@ -98,6 +100,7 @@ def notify():
             new_message_id = response.get("result", {}).get("message_id")
             if new_message_id:
                 redis_client.set(f"message_{event_id}", new_message_id)
+                logging.info(f"Сообщение {message_id} сохранено в Redis для события {event_id}") # Логирование успешной записи в Redis
         else:
             logging.warning(f"No message_id found for event_id: {event_id}")
 
@@ -117,6 +120,7 @@ def notify():
             new_message_id = response.get("result", {}).get("message_id")
             if new_message_id:
                 redis_client.set(f"message_{event_id}", new_message_id)
+                logging.info(f"Сообщение {message_id} сохранено в Redis для события {event_id}") # Логирование успешной записи в Redis
                 delete_message_after_delay(new_message_id, event_id)
 
     return jsonify({"status": "success"})
