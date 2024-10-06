@@ -91,10 +91,15 @@ def notify():
                   f"Текущее значение: {last_value}\n\n" \
                   f"📍 <b>Номер проблемы</b>: {event_id}"
         response = send_telegram_message(message)
-        message_id = response.get("result", {}).get("message_id")
-        if message_id:
-            redis_client.set(f"message_{event_id}", message_id) 
-            logging.info(f"Сообщение {message_id} сохранено в Redis для события {event_id}") # Логирование успешной записи в Redis
+        if response:
+            message_id = response.get("result", {}).get("message_id")
+            if message_id:
+                redis_client.set(f"message_{event_id}", message_id)
+                logging.info(f"Сообщение отправлено и сохранено в Redis: event_id={event_id}, message_id={message_id}")
+            else:
+                logging.error(f"Не удалось получить message_id от Telegram для event_id={event_id}")
+        else:
+            logging.error(f"Ошибка отправки сообщения в Telegram для event_id={event_id}")
 
     elif 'update' in subject: 
         user, action, event_message, host_ip, severity, event_time, last_value, event_age, event_id = parse_update_message(message_body)
@@ -111,12 +116,15 @@ def notify():
                     f"📍 <b>Номер проблемы</b>: {event_id}"
             delete_message(message_id) 
             response = send_telegram_message(message)
-            new_message_id = response.get("result", {}).get("message_id")
-            if new_message_id:
-                redis_client.set(f"message_{event_id}", new_message_id)
-                logging.info(f"Сообщение {message_id} обновлено в Redis для события {event_id}") # Логирование успешной записи в Redis
+        if response:
+            message_id = response.get("result", {}).get("message_id")
+            if message_id:
+                redis_client.set(f"message_{event_id}", message_id)
+                logging.info(f"Сообщение отправлено и сохранено в Redis: event_id={event_id}, message_id={message_id}")
+            else:
+                logging.error(f"Не удалось получить message_id от Telegram для event_id={event_id}")
         else:
-            logging.warning(f"No message_id found for event_id: {event_id}")
+            logging.error(f"Ошибка отправки сообщения в Telegram для event_id={event_id}")
 
     elif 'recovery' in subject: 
         trigger_name, host_name, host_ip, recovery_time, event_age, event_id = parse_message_body(message_body, recovery=True)
@@ -131,11 +139,16 @@ def notify():
                       f"👍 Проблема решена."
             delete_message(message_id)
             response = send_telegram_message(message)
-            new_message_id = response.get("result", {}).get("message_id")
-            if new_message_id:
-                redis_client.set(f"message_{event_id}", new_message_id)
-                logging.info(f"Сообщение {message_id} обновлено в Redis для события {event_id}") # Логирование успешной записи в Redis
+        if response:
+            message_id = response.get("result", {}).get("message_id")
+            if message_id:
+                redis_client.set(f"message_{event_id}", message_id)
+                logging.info(f"Сообщение отправлено и сохранено в Redis: event_id={event_id}, message_id={message_id}")
                 delete_message_after_delay(new_message_id, event_id)
+            else:
+                logging.error(f"Не удалось получить message_id от Telegram для event_id={event_id}")
+        else:
+            logging.error(f"Ошибка отправки сообщения в Telegram для event_id={event_id}")
 
     return jsonify({"status": "success"})
 
@@ -174,5 +187,5 @@ def parse_update_message(body):
     return user, action, event_message, host_ip, severity, event_time, last_value, event_age, event_id
 
 if __name__ == '__main__':
-    logging.info(f"Using delay: {DELAY} seconds")
+    logging.info(f"Используемый delay удаления сообщения: {DELAY} секунд")
     app.run(host='0.0.0.0', port=5000)
