@@ -9,14 +9,6 @@ from dotenv import load_dotenv
 load_dotenv() # Загрузка переменных окружения из файла .env
 
 
-# Настройка подключения к Redis
-try:
-    redis_client = redis.StrictRedis(host='redis', port=6379, db=0, decode_responses=True)
-    if redis_client.ping():
-        logging.info("Успешное подключение к базе Redis")
-except redis.ConnectionError as e:
-    logging.error("Не удалось подключиться к базе Redis")
-
 app = Flask(__name__)
 
 BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -25,6 +17,14 @@ DELAY = int(os.getenv('DELAY', 300))
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
+
+# Настройка подключения к Redis
+try:
+    redis_client = redis.StrictRedis(host='redis', port=6379, db=0, decode_responses=True)
+    if redis_client.ping():
+        logging.info("Успешное подключение к базе Redis")
+except redis.ConnectionError as e:
+    logging.error("Не удалось подключиться к базе Redis")
 
 def send_telegram_message(text):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
