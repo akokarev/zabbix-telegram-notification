@@ -86,31 +86,6 @@ def check_pending_timers():
             logging.info(f"Восстановление таймера для удаления сообщения {message_id} для события {event_id}, осталось {remaining_time} секунд")
             delete_message_after_delay(message_id, event_id, int(remaining_time))
 
-def execute_command(command):
-    """ Выполняет команду и возвращает результат. """
-    try:
-        output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
-        return {"status": "success", "output": output.decode()}
-    except subprocess.CalledProcessError as e:
-        return {"status": "error", "message": e.output.decode()}
-
-def parse_command(message_body):
-    """ Извлекает команду и IP-адрес из тела сообщения. """
-    lines = message_body.split('\n')
-    if len(lines) >= 2:
-        command = lines[0].strip().lower()
-        ip_address = lines[1].strip()
-        if command in ['ping', 'traceroute'] and is_valid_ip(ip_address):
-            return command, ip_address
-    return None, None
-
-def is_valid_ip(ip):
-    """ Проверяет, является ли строка допустимым IP-адресом. """
-    import re
-    # Регулярное выражение для проверки IP-адреса
-    pattern = re.compile(r'^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$')
-    return pattern.match(ip) is not None
-
 @app.route('/notify', methods=['POST'])
 def notify():
     data = request.json.get('monitorJSON', {})
@@ -124,22 +99,6 @@ def notify():
 
     subject = lines[0].strip().lower()
     message_body = '\n'.join(lines[1:]).strip()
-
-    # Проверяем наличие команды в сообщении
-    if 'ping' in subject or 'traceroute' in subject:
-        command_type, host_ip = parse_command(message_body)  # Предполагаем, что у вас есть функция parse_command для извлечения команды и IP
-        if command_type and host_ip:
-            if command_type == 'ping':
-                result = execute_command(f'ping -c 4 {host_ip}')
-            elif command_type == 'traceroute':
-                result = execute_command(f'traceroute {host_ip}')
-            else:
-                result = {"status": "error", "message": "Unsupported command."}
-
-            # Отправка результата в Telegram
-            message = f"Команда: {command_type}\nРезультат:\n{result.get('output', result.get('message'))}"
-            send_telegram_message(message)
-            return jsonify({"status": "success"}), 200
 
     if 'problem' in subject: 
         trigger_name, host_name, host_ip, severity, event_time, last_value, event_id = parse_message_body(message_body)
@@ -244,6 +203,44 @@ def parse_update_message(body):
     event_age = lines[7].split(': ')[1]
     event_id = lines[8].split(': ')[1]
     return user, action, event_message, host_ip, severity, event_time, last_value, event_age, event_id
+
+@app.route('/telegram/message', methods=['POST'])
+def telegram_message():
+    """ Обрабатывает входящие сообщения от Telegram. """
+    update = request.json
+    message = update.get("message", {})
+    chat_id = message.get("chat", {}).get("id")
+    text = message.get("text", "")
+
+    if chat_id != CHAT_ID:
+        return jsonify({"status": "error", "message": "Unauthorized chat ID."}), 403
+
+    # Проверка на команды ping и traceroute
+    if text.startswith("/ping") or text.startswith("/traceroute"):
+        host_ip = text.split()[1]  # Получаем IP-адрес из сообщения
+        command_type = "ping" if text.startswith("/ping") else "traceroute"
+        
+        if command_type == "ping":
+            result = execute_command(f'ping -c 4 {host_ip}')
+        else:  # traceroute
+            result = execute_command(f'traceroute {host_ip}')
+
+        response_message = f"Команда: {command_type}\nРезультат:\n{result.get('output', result.get('message'))}"
+        send_telegram_message(response_message)
+
+    return jsonify({"status": "success"})
+
+def parse_message_body(body):
+    """ Извлекает данные о проблеме из сообщения. """
+    lines = body.split('\r\n')
+    trigger_name = lines[0].split(': ')[1]
+    host_name = lines[1].split(': ')[1]
+    host_ip = lines[2].split(': ')[1]
+    severity = lines[3].split(': ')[1]
+    event_time = lines[4].split(': ')[1]
+    last_value = lines[5].split(': ')[1]
+    event_id = lines[6].split(': ')[1]
+    return trigger_name, host_name, host_ip, severity, event_time, last_value, event_id
 
 if __name__ == '__main__':
     check_pending_timers()
