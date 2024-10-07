@@ -170,8 +170,8 @@ def notify():
 
     return jsonify({"status": "success"})
 
-@app.route('/notify', methods=['POST'])
-def notify():
+@app.route('/ping', methods=['POST'])
+def ping():
     data = request.json.get('monitorJSON', {})
     text = data.get('text', '')
 
