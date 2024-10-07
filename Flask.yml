@@ -1,0 +1,114 @@
+zabbix_export:
+  version: '7.0'
+  media_types:
+    - name: Flask
+      type: WEBHOOK
+      parameters:
+        - name: Message
+          value: '{ALERT.MESSAGE}'
+        - name: Subject
+          value: '{ALERT.SUBJECT}'
+        - name: To
+          value: '{ALERT.SENDTO}'
+      max_sessions: '0'
+      script: |
+        var Flask = {
+            url: null,
+            message: null,
+        
+            sendMessage: function () {
+                var params = {
+                    monitorJSON: {
+                        text: Flask.message
+                    }
+                };
+                var data,
+                    response,
+                    request = new HttpRequest();
+        
+                // Логируем отправку запроса
+                Zabbix.log(4, 'Sending request to Flask: ' + Flask.url);
+                
+                request.addHeader('Content-Type: application/json');
+                data = JSON.stringify(params);
+                
+                // Выполняем POST-запрос
+                response = request.post(Flask.url, data);
+                
+                // Логируем код ответа
+                Zabbix.log(4, 'HTTP code: ' + request.getStatus());
+        
+                try {
+                    response = JSON.parse(response);
+                } catch (error) {
+                    response = null;
+                }
+        
+                // Обработка ошибок HTTP
+                if (request.getStatus() !== 200 || response === null) {
+                    throw 'Ошибка отправки: статус ' + request.getStatus() + '\n' + response;
+                }
+            }
+        };
+        
+        try {
+            var params = JSON.parse(value);
+        
+            // Проверка наличия параметра URL (куда отправляем запрос)
+            if (typeof params.To === 'undefined') {
+                throw 'Некорректное значение параметра "To": параметр отсутствует';
+            }
+        
+            Flask.url = params.To;
+        
+            // Формируем сообщение
+            Flask.message = params.Subject + '\n' + params.Message;
+        
+            // Логируем сообщение для отправки
+            Zabbix.log(4, '[Flask Webhook] Message: ' + Flask.message);
+        
+            // Отправляем сообщение
+            Flask.sendMessage();
+        
+            return 'OK';
+        } catch (error) {
+            Zabbix.log(4, '[Flask Webhook] Ошибка отправки: ' + error);
+            throw 'Отправка не удалась: ' + error + '.';
+        }
+      timeout: 10s
+      message_templates:
+        - event_source: TRIGGERS
+          operation_mode: PROBLEM
+          subject: problem
+          message: |
+            trigger_name: {TRIGGER.NAME}
+            host_name: {HOST.NAME}
+            host_ip: {HOST.IP}
+            severity: {TRIGGER.SEVERITY}
+            event_time: {EVENT.TIME}
+            last_value: {ITEM.VALUE}
+            event_id: {EVENT.ID}
+            
+        - event_source: TRIGGERS
+          operation_mode: RECOVERY
+          subject: recovery
+          message: |
+            trigger_name: {TRIGGER.NAME}
+            host_name: {HOST.NAME}
+            host_ip: {HOST.IP}
+            recovery_time: {EVENT.RECOVERY.DATE} в {EVENT.RECOVERY.TIME}
+            event_age: {EVENT.AGE}
+            event_id: {EVENT.ID}
+        - event_source: TRIGGERS
+          operation_mode: UPDATE
+          subject: update
+          message: |
+            user: {USER.FULLNAME}
+            action: {EVENT.UPDATE.ACTION}
+            event_message: {EVENT.UPDATE.MESSAGE}
+            host_ip: {HOST.IP}
+            severity: {TRIGGER.SEVERITY}
+            event_time: {EVENT.UPDATE.DATE} в {EVENT.UPDATE.TIME}
+            last_value: {ITEM.LASTVALUE}
+            event_age: {EVENT.AGE}
+            event_id: {EVENT.ID}
