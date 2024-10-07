@@ -219,9 +219,9 @@ def telegram_message():
     chat_id = message.get("chat", {}).get("id")
     text = message.get("text", "")
 
-    if chat_id != CHAT_ID:
-        logging.info(f"Неверный Chat ID {chat_id}, должен быть {CHAT_ID}")
-        return jsonify({"status": "error", "message": "Unauthorized chat ID."}), 403
+#    if chat_id != CHAT_ID:
+#        logging.info(f"Неверный Chat ID {chat_id}, должен быть {CHAT_ID}")
+#        return jsonify({"status": "error", "message": "Unauthorized chat ID."}), 403
 
     # Проверка на команды ping и traceroute
     if text.startswith("/ping") or text.startswith("/traceroute"):
