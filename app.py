@@ -170,20 +170,35 @@ def notify():
 
     return jsonify({"status": "success"})
 
-@app.route('/ping', methods=['POST'])
-def ping():
-    data = request.json
-    host_ip = data.get('host_ip')  # Получаем IP-адрес из сообщения
-    if not host_ip:
-        return jsonify({"status": "error", "message": "IP-адрес не указан."}), 400
-    
-    # Выполнение команды ping
-    command = f'ping -c 4 {host_ip}'
-    try:
-        output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
-        return jsonify({"status": "success", "output": output.decode()}), 200
-    except subprocess.CalledProcessError as e:
-        return jsonify({"status": "error", "message": e.output.decode()}), 500
+@app.route('/notify', methods=['POST'])
+def notify():
+    data = request.json.get('monitorJSON', {})
+    text = data.get('text', '')
+
+    logging.info(f"Received JSON: {request.json}")
+
+    lines = text.split('\n')
+    if len(lines) < 2:
+        return jsonify({"status": "error", "message": "Invalid message format"}), 400
+
+    subject = lines[0].strip().lower()
+    message_body = '\n'.join(lines[1:]).strip()
+
+    # Проверяем наличие команды в сообщении
+    if 'ping' in subject or 'traceroute' in subject:
+        command_type, host_ip = parse_message_body(message_body)  # Предполагаем, что у вас есть функция parse_command для извлечения команды и IP
+        if command_type and host_ip:
+            if command_type == 'ping':
+                result = execute_command(f'ping -c 4 {host_ip}')
+            elif command_type == 'traceroute':
+                result = execute_command(f'traceroute {host_ip}')
+            else:
+                result = {"status": "error", "message": "Unsupported command."}
+
+            # Отправка результата в Telegram
+            message = f"Команда: {command_type}\nРезультат:\n{result.get('output', result.get('message'))}"
+            send_telegram_message(message)
+            return jsonify({"status": "success"}), 200
 
 def parse_message_body(body, recovery=False):
     lines = body.split('\r\n')
