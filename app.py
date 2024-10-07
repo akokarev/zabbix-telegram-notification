@@ -212,9 +212,9 @@ def webhook():
 
     # Выполнение команды в зависимости от полученного текста
     if text == '/ping':
-        response = execute_command('ping -c 4 google.com')
+        response = execute_command('ping -c 4 {host_ip}')
     elif text == '/traceroute':
-        response = execute_command('traceroute google.com')
+        response = execute_command('traceroute {host_ip}')
     else:
         response = "Неизвестная команда."
 
