@@ -46,7 +46,7 @@ def send_telegram_message(text):
         # Логирование исключений (ошибок сети, времени ожидания и прочее)
         logging.error(f"Исключение при отправке сообщения в Telegram: {e}")
         return None
-
+    
 def delete_message_after_delay(message_id, event_id, delay=DELAY):
     redis_client.set(f"timer_{event_id}", delay) # Сохраняем информацию о запланированном удалении
     Timer(delay, lambda: delete_message(message_id)).start()
@@ -82,17 +82,9 @@ def check_pending_timers():
         # Проверяем, есть ли в Redis сообщение для удаления
         message_id = redis_client.get(f"message_{event_id}")
         if message_id:
-            logging.info(f"Восстановление таймера для удаления сообщения {message_id} для события {event_id}, осталось {remaining_time} секунд")
+            logging.info(f"Восстановление таймера для удаления сообщения {message_id} для события {event_id}, осталось {remaining_time} секу>
             delete_message_after_delay(message_id, event_id, int(remaining_time))
-
-def execute_command(command):
-    """ Выполняет команду и возвращает результат. """
-    try:
-        output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
-        return {"status": "success", "output": output.decode()}
-    except subprocess.CalledProcessError as e:
-        return {"status": "error", "message": e.output.decode()}
-
+                         
 @app.route('/notify', methods=['POST'])
 def notify():
     data = request.json.get('monitorJSON', {})
@@ -210,36 +202,6 @@ def parse_update_message(body):
     event_age = lines[7].split(': ')[1]
     event_id = lines[8].split(': ')[1]
     return user, action, event_message, host_ip, severity, event_time, last_value, event_age, event_id
-
-@app.route('/telegram/message', methods=['POST'])
-def telegram_message():
-    """ Обрабатывает входящие сообщения от Telegram. """
-    update = request.json
-    message = update.get("message", {})
-    chat_id = message.get("chat", {}).get("id")
-    text = message.get("text", "")
-
-#    if chat_id != CHAT_ID:
-#        logging.info(f"Неверный Chat ID {chat_id}, должен быть {CHAT_ID}")
-#        return jsonify({"status": "error", "message": "Unauthorized chat ID."}), 403
-
-    # Проверка на команды ping и traceroute
-    if text.startswith("/ping") or text.startswith("/traceroute"):
-        host_ip = text.split()[1]  # Получаем IP-адрес из сообщения
-        command_type = "ping" if text.startswith("/ping") else "traceroute"
-        
-        if command_type == "ping":
-            result = execute_command(f'ping -c 4 {host_ip}')
-            logging.info(f"Пинг выполнен на {host_ip}")
-        else:  # traceroute
-            result = execute_command(f'traceroute {host_ip}')
-            logging.info(f"Трассировка выполнена на {host_ip}")
-
-        response_message = f"Команда: {command_type}\nРезультат:\n{result.get('output', result.get('message'))}"
-        send_telegram_message(response_message)
-        logging.info("Сообщение с результатом отправлено в {chat_id}")
-
-    return jsonify({"status": "success"})
 
 if __name__ == '__main__':
     check_pending_timers()
