@@ -5,6 +5,7 @@ import requests
 from threading import Timer
 import redis
 from dotenv import load_dotenv
+import subprocess
 
 load_dotenv() # Загрузка переменных окружения из файла .env
 
@@ -202,6 +203,32 @@ def parse_update_message(body):
     event_age = lines[7].split(': ')[1]
     event_id = lines[8].split(': ')[1]
     return user, action, event_message, host_ip, severity, event_time, last_value, event_age, event_id
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    update = request.get_json()
+    chat_id = update['message']['chat']['id']
+    text = update['message']['text']
+
+    # Выполнение команды в зависимости от полученного текста
+    if text == '/ping':
+        response = execute_command('ping -c 4 google.com')
+    elif text == '/traceroute':
+        response = execute_command('traceroute google.com')
+    else:
+        response = "Неизвестная команда."
+
+    # Отправка результата выполнения команды в Telegram
+    bot.sendMessage(chat_id=chat_id, text=response)
+    return '', 200
+
+def execute_command(command):
+    try:
+        # Выполнение команды
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        return result.stdout or result.stderr  # Возвращаем стандартный вывод или ошибку
+    except Exception as e:
+        return str(e)  # Возвращаем сообщение об ошибке
 
 if __name__ == '__main__':
     check_pending_timers()
