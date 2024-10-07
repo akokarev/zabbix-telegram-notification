@@ -211,7 +211,7 @@ def parse_update_message(body):
     event_id = lines[8].split(': ')[1]
     return user, action, event_message, host_ip, severity, event_time, last_value, event_age, event_id
 
-@app.route('/message', methods=['POST'])
+@app.route('/telegram/message', methods=['POST'])
 def telegram_message():
     """ Обрабатывает входящие сообщения от Telegram. """
     update = request.json
