@@ -220,7 +220,7 @@ def telegram_message():
     text = message.get("text", "")
 
     if chat_id != CHAT_ID:
-        logging.info("Неверный Chat ID {chat_id}")
+        logging.info(f"Неверный Chat ID {chat_id}")
         return jsonify({"status": "error", "message": "Unauthorized chat ID."}), 403
 
     # Проверка на команды ping и traceroute
@@ -230,10 +230,10 @@ def telegram_message():
         
         if command_type == "ping":
             result = execute_command(f'ping -c 4 {host_ip}')
-            logging.info("Пинг выполнен на {host_ip}")
+            logging.info(f"Пинг выполнен на {host_ip}")
         else:  # traceroute
             result = execute_command(f'traceroute {host_ip}')
-            logging.info("Трассировка выполнена на {host_ip}")
+            logging.info(f"Трассировка выполнена на {host_ip}")
 
         response_message = f"Команда: {command_type}\nРезультат:\n{result.get('output', result.get('message'))}"
         send_telegram_message(response_message)
