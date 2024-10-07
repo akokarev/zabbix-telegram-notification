@@ -86,6 +86,14 @@ def check_pending_timers():
             logging.info(f"Восстановление таймера для удаления сообщения {message_id} для события {event_id}, осталось {remaining_time} секунд")
             delete_message_after_delay(message_id, event_id, int(remaining_time))
 
+def execute_command(command):
+    """ Выполняет команду и возвращает результат. """
+    try:
+        output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
+        return {"status": "success", "output": output.decode()}
+    except subprocess.CalledProcessError as e:
+        return {"status": "error", "message": e.output.decode()}
+
 @app.route('/notify', methods=['POST'])
 def notify():
     data = request.json.get('monitorJSON', {})
