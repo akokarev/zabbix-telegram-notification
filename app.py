@@ -5,7 +5,6 @@ import requests
 from threading import Timer
 import redis
 from dotenv import load_dotenv
-import subprocess
 
 load_dotenv() # Загрузка переменных окружения из файла .env
 
@@ -230,25 +229,16 @@ def telegram_message():
         
         if command_type == "ping":
             result = execute_command(f'ping -c 4 {host_ip}')
+            logging.info("Пинг выполнен на {host_ip}")
         else:  # traceroute
             result = execute_command(f'traceroute {host_ip}')
+            logging.info("Трассировка выполнена на {host_ip}")
 
         response_message = f"Команда: {command_type}\nРезультат:\n{result.get('output', result.get('message'))}"
         send_telegram_message(response_message)
+        logging.info("Сообщение с результатом отправлено в {chat_id}")
 
     return jsonify({"status": "success"})
-
-def parse_message_body(body):
-    """ Извлекает данные о проблеме из сообщения. """
-    lines = body.split('\r\n')
-    trigger_name = lines[0].split(': ')[1]
-    host_name = lines[1].split(': ')[1]
-    host_ip = lines[2].split(': ')[1]
-    severity = lines[3].split(': ')[1]
-    event_time = lines[4].split(': ')[1]
-    last_value = lines[5].split(': ')[1]
-    event_id = lines[6].split(': ')[1]
-    return trigger_name, host_name, host_ip, severity, event_time, last_value, event_id
 
 if __name__ == '__main__':
     check_pending_timers()
