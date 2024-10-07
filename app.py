@@ -46,7 +46,7 @@ def send_telegram_message(text):
         # Логирование исключений (ошибок сети, времени ожидания и прочее)
         logging.error(f"Исключение при отправке сообщения в Telegram: {e}")
         return None
-    
+
 def delete_message_after_delay(message_id, event_id, delay=DELAY):
     redis_client.set(f"timer_{event_id}", delay) # Сохраняем информацию о запланированном удалении
     Timer(delay, lambda: delete_message(message_id)).start()
@@ -82,9 +82,9 @@ def check_pending_timers():
         # Проверяем, есть ли в Redis сообщение для удаления
         message_id = redis_client.get(f"message_{event_id}")
         if message_id:
-            logging.info(f"Восстановление таймера для удаления сообщения {message_id} для события {event_id}, осталось {remaining_time} секу>
+            logging.info(f"Восстановление таймера для удаления сообщения {message_id} для события {event_id}, осталось {remaining_time} секунд")
             delete_message_after_delay(message_id, event_id, int(remaining_time))
-                         
+
 @app.route('/notify', methods=['POST'])
 def notify():
     data = request.json.get('monitorJSON', {})
