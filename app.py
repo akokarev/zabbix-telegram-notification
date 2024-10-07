@@ -200,6 +200,22 @@ def notify():
             send_telegram_message(message)
             return jsonify({"status": "success"}), 200
 
+
+def execute_command(command):
+    """ Выполняет команду и возвращает результат. """
+    try:
+        output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
+        return {"status": "success", "output": output.decode()}
+    except subprocess.CalledProcessError as e:
+        return {"status": "error", "message": e.output.decode()}
+    
+def is_valid_ip(ip):
+    """ Проверяет, является ли строка допустимым IP-адресом. """
+    import re
+    # Регулярное выражение для проверки IP-адреса
+    pattern = re.compile(r'^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$')
+    return pattern.match(ip) is not None
+
 def parse_message_body(body, recovery=False):
     lines = body.split('\r\n')
     if not recovery:
