@@ -170,6 +170,21 @@ def notify():
 
     return jsonify({"status": "success"})
 
+@app.route('/ping', methods=['POST'])
+def ping():
+    data = request.json
+    host_ip = data.get('host_ip')  # Получаем IP-адрес из сообщения
+    if not host_ip:
+        return jsonify({"status": "error", "message": "IP-адрес не указан."}), 400
+    
+    # Выполнение команды ping
+    command = f'ping -c 4 {host_ip}'
+    try:
+        output = subprocess.check_output(command, shell=True, stderr=subprocess.STDOUT)
+        return jsonify({"status": "success", "output": output.decode()}), 200
+    except subprocess.CalledProcessError as e:
+        return jsonify({"status": "error", "message": e.output.decode()}), 500
+
 def parse_message_body(body, recovery=False):
     lines = body.split('\r\n')
     if not recovery:
@@ -203,32 +218,6 @@ def parse_update_message(body):
     event_age = lines[7].split(': ')[1]
     event_id = lines[8].split(': ')[1]
     return user, action, event_message, host_ip, severity, event_time, last_value, event_age, event_id
-
-@app.route('/webhook', methods=['POST'])
-def webhook():
-    update = request.get_json()
-    chat_id = update['message']['chat']['id']
-    text = update['message']['text']
-
-    # Выполнение команды в зависимости от полученного текста
-    if text == '/ping':
-        response = execute_command('ping -c 4 {host_ip}')
-    elif text == '/traceroute':
-        response = execute_command('traceroute {host_ip}')
-    else:
-        response = "Неизвестная команда."
-
-    # Отправка результата выполнения команды в Telegram
-    bot.sendMessage(chat_id=chat_id, text=response)
-    return '', 200
-
-def execute_command(command):
-    try:
-        # Выполнение команды
-        result = subprocess.run(command, shell=True, capture_output=True, text=True)
-        return result.stdout or result.stderr  # Возвращаем стандартный вывод или ошибку
-    except Exception as e:
-        return str(e)  # Возвращаем сообщение об ошибке
 
 if __name__ == '__main__':
     check_pending_timers()
